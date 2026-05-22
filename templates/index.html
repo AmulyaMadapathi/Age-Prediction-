@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Demographic Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-accent: #00c6ff;
+            --secondary-accent: #0072ff;
+            --background-start: #1a202c;
+            --background-end: #2d3748;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --text-color: #edf2f7;
+            --light-text: #a0aec0;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --modal-bg: rgba(0,0,0,0.7);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--background-start), var(--background-end));
+            color: var(--text-color);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { max-width: 1200px; width: 100%; margin: auto; text-align: center; }
+        h1 { font-size: 2.8rem; font-weight: 700; }
+        h2 { font-size: 1.8rem; font-weight: 600; margin-top: 2rem; }
+        button {
+            background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
+            color: white; border: none; padding: 0.8rem 1.8rem; border-radius: 8px; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s ease; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        button:hover { transform: translateY(-3px); }
+        .spinner {
+            display: none; margin: 2rem auto; border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid var(--primary-accent); border-radius: 50%;
+            width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #selection-screen { text-align: center; }
+        .app-selection-container { display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
+        .app-card {
+            background: var(--card-bg); padding: 2rem; border-radius: 15px; border: 1px solid var(--border-color);
+            width: 250px; cursor: pointer; transition: all 0.3s ease;
+        }
+        .app-card:hover { transform: translateY(-10px); border-color: var(--primary-accent); }
+        .app-card h3 { margin-top: 0; font-size: 1.5rem; color: var(--primary-accent); }
+        .app-card p { color: var(--light-text); }
+        
+        #main-app-screen { display: none; }
+        .upload-section {
+            background: var(--card-bg); padding: 2.5rem; border-radius: 20px;
+            border: 1px solid var(--border-color); margin-bottom: 2.5rem;
+        }
+        #drop-zone {
+            border: 2px dashed var(--border-color); border-radius: 15px; padding: 2.5rem;
+            margin-bottom: 1.5rem; transition: all 0.3s ease; cursor: pointer;
+        }
+        #drop-zone:hover, #drop-zone.dragover { border-color: var(--primary-accent); background-color: rgba(0, 198, 255, 0.1); }
+        .input-options { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+        #url-input { padding: 0.8rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; width: 350px; background: rgba(0,0,0,0.2); color: var(--text-color); }
+        
+        .results-section { display: flex; flex-direction: column; gap: 2rem; align-items: center; }
+        #image-container {
+            border: 1px solid var(--border-color); padding: 1rem; border-radius: 15px;
+            background: var(--card-bg); width: 80%; max-width: 800px; height: 550px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #result-image { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+        #analysis-container { width: 80%; max-width: 800px; text-align: left; }
+        .result-card {
+            background: var(--card-bg); padding: 1.5rem 2rem; border-radius: 15px;
+            border: 1px solid var(--border-color); margin-bottom: 1.5rem;
+        }
+        .result-card h3 { margin-top: 0; color: var(--primary-accent); border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; }
+        .result-card p { margin: 0.6rem 0; line-height: 1.7; color: var(--light-text); }
+        .result-card strong { color: var(--text-color); }
+        .error-message {
+            color: #ff8a8a; background-color: rgba(255, 82, 82, 0.1); border: 1px solid #ff5252;
+            padding: 1rem; border-radius: 8px; margin-top: 1rem; display: none;
+        }
+        #back-btn { margin-bottom: 1rem; background: #4A5568; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg);
+            display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: linear-gradient(135deg, var(--background-start), var(--background-end));
+            padding: 2rem; border-radius: 15px; text-align: center; max-width: 90%; width: 500px;
+            border: 1px solid var(--border-color); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        #camera-preview, #photo-canvas { max-width: 100%; border-radius: 8px; background-color: #000; margin-bottom: 1.5rem; }
+        .modal-content button { margin: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="selection-screen">
+            <h1>AI-Powered Demographic Analysis</h1>
+            <h2>Select an Application</h2>
+            <div class="app-selection-container">
+                <div class="app-card" onclick="selectApplication('health')">
+                    <h3>Health Analysis</h3>
+                    <p>Get preliminary health insights, including insurance tiers and checkup recommendations based on age.</p>
+                </div>
+                <div class="app-card" onclick="selectApplication('security')">
+                    <h3>Security Check</h3>
+                    <p>Use age estimation for access control and age verification in security-sensitive scenarios.</p>
+                </div>
+                <div class="app-card" onclick="selectApplication('marketing')">
+                    <h3>Marketing Insights</h3>
+                    <p>Understand customer demographics to tailor products and advertising campaigns effectively.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-app-screen">
+            <button id="back-btn">← Back to Applications</button>
+            <h1 id="app-title">Analysis</h1>
+            <div class="upload-section">
+                <input type="file" id="imageInput" accept="image/*" hidden>
+                <div id="drop-zone"><p>Drag & Drop, or Click to Select Image</p></div>
+                <div class="input-options">
+                    <button id="take-photo-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-camera-fill" viewBox="0 0 16 16"><path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/><path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/></svg>
+                        Take a Photo
+                    </button>
+                    <input type="text" id="url-input" placeholder="Or paste image URL here">
+                    <button onclick="predictFromUrl()">Analyze URL</button>
+                </div>
+            </div>
+            <div class="spinner" id="spinner"></div>
+            <div class="error-message" id="error-message"></div>
+            <div class="results-section">
+                <div id="image-container"><img id="result-image" src="" alt="Analyzed face"/></div>
+                <div id="analysis-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="camera-modal">
+        <div class="modal-content">
+            <h3>Camera Preview</h3>
+            <video id="camera-preview" autoplay playsinline></video>
+            <canvas id="photo-canvas" style="display:none;"></canvas>
+            <div>
+                <button id="capture-btn">Capture</button>
+                <button id="retake-btn" style="display:none;">Retake</button>
+                <button id="use-photo-btn" style="display:none;">Use This Photo</button>
+                <button id="close-camera-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const selectionScreen = document.getElementById('selection-screen');
+        const mainAppScreen = document.getElementById('main-app-screen');
+        const appTitle = document.getElementById('app-title');
+        const backBtn = document.getElementById('back-btn');
+        const dropZone = document.getElementById('drop-zone');
+        const imageInput = document.getElementById('imageInput');
+        const urlInput = document.getElementById('url-input');
+        const resultImage = document.getElementById('result-image');
+        const spinner = document.getElementById('spinner');
+        const analysisContainer = document.getElementById('analysis-container');
+        const errorMessage = document.getElementById('error-message');
+        let selectedApplication = '';
+
+        const takePhotoButton = document.getElementById('take-photo-btn');
+        const cameraModal = document.getElementById('camera-modal');
+        const cameraPreview = document.getElementById('camera-preview');
+        const photoCanvas = document.getElementById('photo-canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const usePhotoBtn = document.getElementById('use-photo-btn');
+        const closeCameraBtn = document.getElementById('close-camera-btn');
+        let stream = null;
+
+        takePhotoButton.addEventListener('click', async () => {
+            cameraModal.style.display = 'flex';
+            errorMessage.style.display = 'none';
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                cameraPreview.srcObject = stream;
+                cameraPreview.style.display = 'block';
+                photoCanvas.style.display = 'none';
+                captureBtn.style.display = 'inline-block';
+                retakeBtn.style.display = 'none';
+                usePhotoBtn.style.display = 'none';
+            } catch (err) {
+                errorMessage.textContent = "Could not access camera. Please allow camera permissions.";
+                errorMessage.style.display = 'block';
+                closeCameraModal();
+            }
+        });
+        
+        captureBtn.addEventListener('click', () => {
+            const ctx = photoCanvas.getContext('2d');
+            photoCanvas.width = cameraPreview.videoWidth;
+            photoCanvas.height = cameraPreview.videoHeight;
+            ctx.drawImage(cameraPreview, 0, 0, photoCanvas.width, photoCanvas.height);
+            cameraPreview.style.display = 'none';
+            photoCanvas.style.display = 'block';
+            captureBtn.style.display = 'none';
+            retakeBtn.style.display = 'inline-block';
+            usePhotoBtn.style.display = 'inline-block';
+        });
+
+        retakeBtn.addEventListener('click', () => {
+            cameraPreview.style.display = 'block';
+            photoCanvas.style.display = 'none';
+            captureBtn.style.display = 'inline-block';
+            retakeBtn.style.display = 'none';
+            usePhotoBtn.style.display = 'none';
+        });
+
+        usePhotoBtn.addEventListener('click', () => {
+            photoCanvas.toBlob(blob => {
+                const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+                handleFile(file);
+                closeCameraModal();
+            }, 'image/jpeg');
+        });
+
+        function closeCameraModal() {
+            cameraModal.style.display = 'none';
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+        closeCameraBtn.addEventListener('click', closeCameraModal);
+
+        function selectApplication(appType) {
+            selectedApplication = appType;
+            let title = '';
+            if (appType === 'health') title = 'Health Analysis';
+            if (appType === 'security') title = 'Security Check';
+            if (appType === 'marketing') title = 'Marketing Insights';
+            appTitle.textContent = title;
+            
+            selectionScreen.style.display = 'none';
+            mainAppScreen.style.display = 'block';
+        }
+
+        backBtn.addEventListener('click', () => {
+            mainAppScreen.style.display = 'none';
+            selectionScreen.style.display = 'block';
+            analysisContainer.innerHTML = '';
+            resultImage.style.display = 'none';
+            errorMessage.style.display = 'none';
+        });
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+        dropZone.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', () => handleFile(imageInput.files[0]));
+
+        function handleFile(file) {
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('application', selectedApplication);
+            predict(formData);
+        }
+
+        function predictFromUrl() {
+            const imageUrl = urlInput.value.trim();
+            if (!imageUrl) { 
+                errorMessage.textContent = 'Please enter an image URL.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            const payload = JSON.stringify({ url: imageUrl, application: selectedApplication });
+            predict(payload, true);
+        }
+        
+        async function predict(body, isJson = false) {
+            spinner.style.display = 'block';
+            analysisContainer.innerHTML = '';
+            resultImage.style.display = 'none';
+            errorMessage.style.display = 'none';
+
+            try {
+                const response = await fetch("{{ url_for('predict') }}", {
+                    method: 'POST',
+                    headers: isJson ? {'Content-Type': 'application/json'} : {},
+                    body: body
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
+                spinner.style.display = 'none';
+                if (data.image_data) {
+                    resultImage.src = data.image_data;
+                    resultImage.style.display = 'block';
+                }
+                if (data.results && data.results.length > 0) {
+                    displayResults(data.results);
+                } else {
+                     throw new Error("No faces were detected in the image.");
+                }
+            } catch (error) {
+                spinner.style.display = 'none';
+                errorMessage.textContent = `Error: ${error.message}`;
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function displayResults(results) {
+            analysisContainer.innerHTML = ''; 
+            results.forEach((person, index) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                const metrics = person.metrics;
+                let content = `<h3>Person ${index + 1} Analysis</h3>
+                             <p><strong>Predicted Age Range:</strong> ${person.age_range}</p>
+                             <p><strong>Predicted Gender:</strong> ${person.gender}</p>`;
+                
+                // UPDATED: This block now displays the new detailed metrics
+                if (person.application === 'health') {
+                    content += `
+                        <p><strong>Insurance Tier:</strong> ${metrics.insurance_premium}</p>
+                        <p><strong>Blood Donation Eligibility:</strong> ${metrics.blood_donation}</p>
+                        <p><strong>Checkup Schedule:</strong> ${metrics.checkup_recommendation}</p>
+                        <p><strong>Recommended Screenings:</strong> ${metrics.recommended_screenings}</p>
+                        <p><strong>Lifestyle Notes:</strong> ${metrics.lifestyle_notes}</p>
+                    `;
+                } else if (person.application === 'security') {
+                    content += `
+                        <p><strong>Access Level:</strong> ${metrics.access_level}</p>
+                        <p><strong>Pub/Bar Entry:</strong> ${metrics.pub_entry}</p>
+                        <p><strong>Voting Eligibility:</strong> ${metrics.voting_eligibility}</p>
+                        <p><strong>Movie Rating Access:</strong> ${metrics.movie_rating_access}</p>
+                    `;
+                } else if (person.application === 'marketing') {
+                    content += `
+                        <p><strong>Target Demographic Profile:</strong> ${metrics.target_demographic}</p>
+                        <p><strong>Recommended Product Categories:</strong> ${metrics.product_category_focus}</p>
+                        <p><strong>Suggested Campaign Strategy:</strong> ${metrics.campaign_strategy}</p>
+                        <p><strong>Preferred Platforms:</strong> ${metrics.preferred_platforms}</p>
+                    `;
+                }
+                card.innerHTML = content;
+                analysisContainer.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
