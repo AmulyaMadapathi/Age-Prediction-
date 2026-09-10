@@ -1,0 +1,9 @@
+# Large ONNX model - don't push to normal GitHub
+models/age_gender/model.onnx
+
+# Runtime uploads
+uploads/
+
+# Python cache
+__pycache__/
+*.pyc
