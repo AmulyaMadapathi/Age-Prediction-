@@ -16,6 +16,24 @@ AGE_GENDER_MODEL = os.path.join('models', 'age_gender', 'model.onnx')
 # Load the face detector and the new ONNX age + gender model
 try:
     faceNet = cv2.dnn.readNet(FACE_MODEL, FACE_PROTO)
+    # Download the ONNX model automatically if it is not available locally.
+    MODEL_URL = "https://huggingface.co/onnx-community/age-gender-prediction-ONNX/resolve/main/onnx/model.onnx"
+
+    if not os.path.exists(AGE_GENDER_MODEL):
+        print("Age-gender model not found. Downloading from Hugging Face...")
+
+        os.makedirs(os.path.dirname(AGE_GENDER_MODEL), exist_ok=True)
+
+        response = requests.get(MODEL_URL, stream=True)
+        response.raise_for_status()
+
+        with open(AGE_GENDER_MODEL, "wb") as model_file:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    model_file.write(chunk)
+
+        print("Age-gender model downloaded successfully.")
+
     ageGenderSession = ort.InferenceSession(
         AGE_GENDER_MODEL,
         providers=["CPUExecutionProvider"]
@@ -300,4 +318,8 @@ def predict():
             os.remove(filepath)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(
+        host='0.0.0.0',
+        port=int(os.environ.get('PORT', 5000)),
+        debug=True
+    )
